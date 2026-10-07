@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Painel Admin — Rifa Digital</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-2: #273449;
+    --texto: #e2e8f0;
+    --texto-suave: #94a3b8;
+    --primaria: #3b82f6;
+    --primaria-hover: #2563eb;
+    --sucesso: #22c55e;
+    --erro: #ef4444;
+    --aviso: #f59e0b;
+    --borda: #334155;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--texto);
+    min-height: 100vh;
+    padding: 1rem;
+  }
+
+  .hidden { display: none !important; }
+
+  /* ---------- PAINEL ---------- */
+  .painel { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: var(--card);
+    border-radius: 14px;
+    border: 1px solid var(--borda);
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .topbar h1 { font-size: 1.25rem; }
+
+  .status-conexao {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+    padding: 0.4rem 0.75rem;
+    background: var(--card-2);
+    border-radius: 999px;
+    border: 1px solid var(--borda);
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--texto-suave);
+    transition: background 0.3s;
+  }
+  .dot.online  { background: var(--sucesso); box-shadow: 0 0 8px var(--sucesso); }
+  .dot.offline { background: var(--erro); }
+  .dot.checking { background: var(--aviso); animation: piscar 1s infinite; }
+  @keyframes piscar { 50% { opacity: 0.3; } }
+
+  .aviso-dev {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid var(--aviso);
+    color: var(--aviso);
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 1.5rem;
+    border: 1px solid var(--borda);
+  }
+  .card h2 { font-size: 1.15rem; margin-bottom: 1.25rem; }
+  .card h3 { font-size: 1rem; margin: 1.25rem 0 0.75rem; color: var(--texto-suave); }
+
+  /* ---------- SEÇÃO DE CAMPANHA ---------- */
+  .header-campanha {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .header-campanha h2 { font-size: 1.15rem; margin: 0; }
+
+  .card-campanha-atual {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 1.5rem;
+    align-items: stretch;
+    padding: 1rem;
+    background: var(--card-2);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .card-campanha-atual:hover {
+    border-color: var(--primaria);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+  @media (max-width: 640px) {
+    .card-campanha-atual { grid-template-columns: 1fr; }
+  }
+
+  .card-campanha-atual__foto {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 10px;
+    background: var(--card);
+  }
+  .card-campanha-atual__foto-vazia {
+    width: 100%;
+    height: 160px;
+    background: var(--card);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--texto-suave);
+    font-size: 3rem;
+  }
+
+  .card-campanha-atual__info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.6rem;
+  }
+  .card-campanha-atual__titulo {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  .card-campanha-atual__linha {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--texto-suave);
+  }
+  .card-campanha-atual__linha strong { color: var(--texto); }
+
+  .barra-progresso {
+    width: 100%;
+    height: 8px;
+    background: var(--card);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 0.3rem;
+  }
+  .barra-progresso__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primaria), var(--sucesso));
+    border-radius: 999px;
+    transition: width 0.4s;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--texto-suave);
+    border: 2px dashed var(--borda);
+    border-radius: 12px;
+    font-style: italic;
+    font-size: 0.9rem;
+  }
+
+  /* ---------- FORMULÁRIO ---------- */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  .campo { display: flex; flex-direction: column; gap: 0.35rem; }
+  .campo label { font-size: 0.85rem; color: var(--texto-suave); }
+  .campo input {
+    padding: 0.7rem 0.9rem;
+    border-radius: 9px;
+    border: 1px solid var(--borda);
+    background: var(--card-2);
+    color: var(--texto);
+    font-size: 0.95rem;
+  }
+  .campo input:focus { outline: 2px solid var(--primaria); border-color: transparent; }
+
+  .preview-foto {
+    margin-top: 1rem;
+    height: 180px;
+    border: 2px dashed var(--borda);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+  }
+  .preview-foto img { max-height: 100%; max-width: 100%; object-fit: contain; }
+
+  .acoes { margin-top: 1.25rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+  /* ---------- BOTÕES ---------- */
+  .btn-primario, .btn-secundario, .btn-sorteio {
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+  }
+  .btn-primario { background: var(--primaria); color: white; }
+  .btn-primario:hover { background: var(--primaria-hover); }
+  .btn-secundario { background: var(--card-2); color: var(--texto); border: 1px solid var(--borda); }
+  .btn-secundario:hover { background: var(--borda); }
+  .btn-sorteio {
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: white;
+    font-size: 1.15rem;
+    padding: 1.1rem 2rem;
+    width: 100%;
+  }
+  .btn-sorteio:hover { transform: scale(1.01); }
+  .btn-sorteio:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* ---------- STATS ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+  .stat {
+    background: var(--card-2);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .stat-label { font-size: 0.8rem; color: var(--texto-suave); }
+  .stat-valor { font-size: 1.5rem; font-weight: 700; color: var(--primaria); }
+
+  /* ---------- TABELA ---------- */
+  .tabela-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--borda); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th, td { padding: 0.75rem 1rem; text-align: left; }
+  th { background: var(--card-2); color: var(--texto-suave); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+  tbody tr { border-top: 1px solid var(--borda); }
+  tbody tr:hover { background: rgba(59, 130, 246, 0.05); }
+  tbody tr td[colspan] { text-align: center; color: var(--texto-suave); padding: 2rem 1rem; font-style: italic; }
+  .tag {
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .tag-pago { background: rgba(34, 197, 94, 0.15); color: var(--sucesso); }
+  .tag-pendente { background: rgba(245, 158, 11, 0.15); color: var(--aviso); }
+
+  /* ---------- SORTEIO ---------- */
+  .aviso { color: var(--texto-suave); font-size: 0.9rem; margin-bottom: 1rem; }
+  .resultado {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(59,130,246,0.15));
+    border: 2px solid var(--sucesso);
+    border-radius: 12px;
+    animation: aparecer 0.5s ease;
+  }
+  .resultado h3 { color: var(--sucesso); font-size: 1.3rem; margin-bottom: 1rem; }
+  .resultado p { margin-bottom: 0.4rem; font-size: 1rem; }
+  @keyframes aparecer { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+  /* ---------- MENSAGENS ---------- */
+  .msg { font-size: 0.9rem; }
+  .msg.sucesso { color: var(--sucesso); }
+  .msg.erro { color: var(--erro); }
+</style>
+</head>
+<body>
+
+<main class="painel">
+
+  <header class="topbar">
+    <h1>🎁 Rifa Digital — Admin</h1>
+    <div class="status-conexao">
+      <span class="dot checking" id="dot-status"></span>
+      <span id="texto-status">Verificando conexão...</span>
+    </div>
+  </header>
+
+  <div class="aviso-dev">
+    ⚠️ <strong>Modo desenvolvimento:</strong> autenticação será adicionada depois.
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- NOVO: CARD DA CAMPANHA ATUAL                   -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section class="card">
+    <div class="header-campanha">
+      <h2>📋 Campanha Lançada</h2>
+      <button class="btn-primario" id="btn-nova-campanha">➕ Nova Campanha</button>
+    </div>
+
+    <div id="campanha-wrap">
+      <div class="empty-state" id="campanha-vazia">
+        Nenhuma campanha lançada ainda. Preencha o formulário abaixo para começar.
+      </div>
+
+      <div class="card-campanha-atual hidden" id="campanha-card">
+        <div id="campanha-foto-wrap">
+          <img class="card-campanha-atual__foto hidden" id="campanha-foto" src="" alt="" />
+          <div class="card-campanha-atual__foto-vazia" id="campanha-foto-vazia">🎁</div>
+        </div>
+        <div class="card-campanha-atual__info">
+          <div class="card-campanha-atual__titulo" id="campanha-titulo">—</div>
+          <div class="card-campanha-atual__linha">
+            <span>Valor do ticket: <strong id="campanha-valor">R$ 0,00</strong></span>
+            <span>Meta: <strong id="campanha-meta">R$ 0,00</strong></span>
+          </div>
+          <div class="card-campanha-atual__linha">
+            <span>Tickets vendidos: <strong id="campanha-tickets">0</strong></span>
+            <span>Arrecadado: <strong id="campanha-arrecadado">R$ 0,00</strong></span>
+          </div>
+          <div class="barra-progresso">
+            <div class="barra-progresso__fill" id="campanha-barra" style="width: 0%"></div>
+          </div>
+          <div class="card-campanha-atual__linha">
+            <span>Progresso</span>
+            <span><strong id="campanha-progresso">0%</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- CONFIGURAÇÃO DO PRÊMIO (original)              -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section class="card">
+    <h2>⚙️ Configuração do Prêmio</h2>
+    <form id="form-premio">
+      <div class="grid-2">
+        <div class="campo">
+          <label for="titulo">Nome do prêmio</label>
+          <input type="text" id="titulo" placeholder="Ex.: Cesta Básica" required />
+        </div>
+
+        <div class="campo">
+          <label for="valor_ticket">Valor de cada ticket (R$)</label>
+          <input type="number" id="valor_ticket" min="0.50" step="0.50" value="1.00" required />
+        </div>
+
+        <div class="campo">
+          <label for="meta_valor">Meta de arrecadação (R$)</label>
+          <input type="number" id="meta_valor" min="1" step="1" value="40" required />
+        </div>
+
+        <div class="campo">
+          <label for="foto_url">Foto do prêmio (URL)</label>
+          <input type="url" id="foto_url" placeholder="https://exemplo.com/imagem.jpg" required />
+        </div>
+      </div>
+
+      <div class="preview-foto">
+        <img id="preview" src="" alt="" class="hidden" />
+        <span id="preview-vazio">Pré-visualização da foto aparecerá aqui</span>
+      </div>
+
+      <div class="acoes">
+        <button type="submit" class="btn-primario">💾 Salvar configuração</button>
+        <p id="msg-config" class="msg hidden"></p>
+      </div>
+    </form>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- DASHBOARD (original)                           -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section class="card">
+    <h2>📊 Estatísticas</h2>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">Tickets vendidos</span>
+        <span class="stat-valor" id="stat-tickets">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Arrecadado</span>
+        <span class="stat-valor" id="stat-arrecadado">R$ 0,00</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Meta</span>
+        <span class="stat-valor" id="stat-meta">R$ 0,00</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Progresso</span>
+        <span class="stat-valor" id="stat-progresso">0%</span>
+      </div>
+    </div>
+
+    <h3>Compradores</h3>
+    <div class="tabela-wrap">
+      <table id="tabela-compradores">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Telefone</th>
+            <th>CPF</th>
+            <th>Tickets</th>
+            <th>Valor</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="6">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <button id="btn-atualizar" class="btn-secundario" style="margin-top:1rem;">🔄 Atualizar dados</button>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SORTEIO (original)                             -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section class="card">
+    <h2>🎲 Sorteio</h2>
+    <p id="aviso-sorteio" class="aviso">Carregando informações do sorteio...</p>
+    <button id="btn-sorteio" class="btn-sorteio" disabled>🎉 Realizar Sorteio</button>
+
+    <div id="resultado-sorteio" class="resultado hidden">
+      <h3>🏆 Vencedor</h3>
+      <p><strong>Nome:</strong> <span id="venc-nome"></span></p>
+      <p><strong>Telefone:</strong> <span id="venc-telefone"></span></p>
+      <p><strong>Ticket:</strong> <span id="venc-ticket"></span></p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// ⚙️ CONFIGURAÇÃO — SEUS WEBHOOKS
+// ═══════════════════════════════════════════════════════════════
+const N8N_BASE = 'https://n8n-n8n.njqmsx.easypanel.host/webhook';
+
+const ENDPOINTS = {
+  config:      `${N8N_BASE}/admin-config-premio`,
+  premio:      `${N8N_BASE}/admin-get-premio`,
+  compradores: `${N8N_BASE}/admin-get-compradores`,
+  sorteio:     `${N8N_BASE}/admin-sorteio`
+};
+
+console.log('[Rifa Admin] Endpoints:', ENDPOINTS);
+
+// ==================== HELPERS ====================
+const $ = (id) => document.getElementById(id);
+
+function formatBRL(v) {
+  return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function headersJson() {
+  return { 'Content-Type': 'application/json' };
+}
+
+// ==================== STATUS DE CONEXÃO ====================
+function setStatus(estado, texto) {
+  const dot = $('dot-status');
+  dot.className = 'dot ' + estado;
+  $('texto-status').textContent = texto;
+}
+
+async function verificarConexao() {
+  setStatus('checking', 'Verificando conexão...');
+  try {
+    const res = await fetch(ENDPOINTS.premio, {
+      headers: headersJson(),
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.status === 'ok') {
+      setStatus('online', 'Conectado ao n8n');
+      return true;
+    }
+    throw new Error('Resposta inesperada');
+  } catch (err) {
+    console.error('Falha na conexão:', err);
+    setStatus('offline', 'n8n inacessível');
+    return false;
+  }
+}
+
+// ==================== INICIALIZAÇÃO ====================
+(async function iniciar() {
+  await verificarConexao();
+  await carregarPremio();
+  await carregarCompradores();
+})();
+
+// ==================== CARD DA CAMPANHA ====================
+let premioAtual = null;
+
+function atualizarCardCampanha() {
+  if (!premioAtual || !premioAtual.titulo) {
+    $('campanha-vazia').classList.remove('hidden');
+    $('campanha-card').classList.add('hidden');
+    return;
+  }
+
+  $('campanha-vazia').classList.add('hidden');
+  $('campanha-card').classList.remove('hidden');
+
+  const c = premioAtual;
+  $('campanha-titulo').textContent = c.titulo;
+  $('campanha-valor').textContent = formatBRL(c.valor_ticket);
+  $('campanha-meta').textContent = formatBRL(c.meta_valor);
+
+  if (c.foto_url) {
+    $('campanha-foto').src = c.foto_url;
+    $('campanha-foto').classList.remove('hidden');
+    $('campanha-foto-vazia').classList.add('hidden');
+  } else {
+    $('campanha-foto').classList.add('hidden');
+    $('campanha-foto-vazia').classList.remove('hidden');
+  }
+
+  // Tickets e arrecadado (vem do carregarCompradores)
+  const tickets = Number($('stat-tickets').textContent) || 0;
+  const arrecadadoStr = $('stat-arrecadado').textContent;
+  const meta = Number(c.meta_valor) || 0;
+
+  $('campanha-tickets').textContent = tickets;
+  $('campanha-arrecadado').textContent = arrecadadoStr;
+
+  const progresso = meta > 0 ? Math.min(100, (parseBRL(arrecadadoStr) / meta) * 100) : 0;
+  $('campanha-barra').style.width = progresso + '%';
+  $('campanha-progresso').textContent = progresso.toFixed(0) + '%';
+}
+
+function parseBRL(s) {
+  return Number(String(s).replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
+}
+
+// Clique no card → rola até o formulário
+$('campanha-card')?.addEventListener('click', () => {
+  $('form-premio').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => $('titulo').focus(), 400);
+});
+
+// Botão "Nova Campanha" → limpa formulário e preview
+$('btn-nova-campanha').addEventListener('click', () => {
+  $('form-premio').reset();
+  $('valor_ticket').value = '1.00';
+  $('meta_valor').value = '40';
+  $('preview').src = '';
+  $('preview').classList.add('hidden');
+  $('preview-vazio').classList.remove('hidden');
+  $('msg-config').classList.add('hidden');
+  $('titulo').focus();
+  $('form-premio').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+// ==================== PREVIEW DA FOTO ====================
+$('foto_url').addEventListener('input', (e) => {
+  const url = e.target.value.trim();
+  if (url) {
+    $('preview').src = url;
+    $('preview').classList.remove('hidden');
+    $('preview-vazio').classList.add('hidden');
+  } else {
+    $('preview').classList.add('hidden');
+    $('preview-vazio').classList.remove('hidden');
+  }
+});
+
+// ==================== SALVAR CONFIGURAÇÃO ====================
+$('form-premio').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msgEl = $('msg-config');
+  msgEl.className = 'msg';
+  msgEl.textContent = 'Salvando...';
+  msgEl.classList.remove('hidden');
+
+  const payload = {
+    titulo:       $('titulo').value.trim(),
+    valor_ticket: parseFloat($('valor_ticket').value),
+    meta_valor:   parseFloat($('meta_valor').value),
+    foto_url:     $('foto_url').value.trim()
+  };
+
+  try {
+    const res = await fetch(ENDPOINTS.config, {
+      method: 'POST',
+      headers: headersJson(),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.status === 'ok') {
+      msgEl.textContent = '✅ Configuração salva com sucesso!';
+      msgEl.classList.add('sucesso');
+      setStatus('online', 'Conectado ao n8n');
+      await carregarPremio();
+      await carregarCompradores();
+    } else {
+      msgEl.textContent = '❌ ' + (data.mensagem || 'Erro ao salvar.');
+      msgEl.classList.add('erro');
+    }
+  } catch (err) {
+    console.error(err);
+    msgEl.textContent = '❌ Erro de conexão com o n8n.';
+    msgEl.classList.add('erro');
+    setStatus('offline', 'n8n inacessível');
+  }
+
+  setTimeout(() => msgEl.classList.add('hidden'), 4000);
+});
+
+// ==================== CARREGAR PRÊMIO ====================
+async function carregarPremio() {
+  try {
+    const res = await fetch(ENDPOINTS.premio, { headers: headersJson() });
+    const data = await res.json();
+
+    if (data.status === 'ok' && data.premio) {
+      const p = data.premio;
+      premioAtual = p;
+
+      $('titulo').value       = p.titulo || '';
+      $('valor_ticket').value = p.valor_ticket || 1;
+      $('meta_valor').value   = p.meta_valor || 40;
+      $('foto_url').value     = p.foto_url || '';
+
+      if (p.foto_url) {
+        $('preview').src = p.foto_url;
+        $('preview').classList.remove('hidden');
+        $('preview-vazio').classList.add('hidden');
+      } else {
+        $('preview').classList.add('hidden');
+        $('preview-vazio').classList.remove('hidden');
+      }
+
+      $('stat-meta').textContent = formatBRL(p.meta_valor);
+      atualizarCardCampanha();
+      setStatus('online', 'Conectado ao n8n');
+    }
+  } catch (err) {
+    console.error('Erro ao carregar prêmio:', err);
+    setStatus('offline', 'Falha ao carregar prêmio');
+  }
+}
+
+// ==================== COMPRADORES E STATS ====================
+$('btn-atualizar').addEventListener('click', async () => {
+  await verificarConexao();
+  await carregarPremio();
+  await carregarCompradores();
+});
+
+async function carregarCompradores() {
+  const tbody = document.querySelector('#tabela-compradores tbody');
+  try {
+    const res = await fetch(ENDPOINTS.compradores, { headers: headersJson() });
+    const data = await res.json();
+
+    if (data.status !== 'ok') {
+      tbody.innerHTML = '<tr><td colspan="6">Erro ao carregar compradores.</td></tr>';
+      return;
+    }
+
+    const lista = data.compradores || [];
+    tbody.innerHTML = '';
+
+    if (lista.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6">Nenhum comprador registrado ainda.</td></tr>';
+    }
+
+    let totalTickets = 0;
+    let totalArrecadado = 0;
+
+    lista.forEach(c => {
+      totalTickets += Number(c.quantidade || 0);
+      if (c.status === 'PAGO') totalArrecadado += Number(c.valor_total || 0);
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${c.nome || '-'}</td>
+        <td>${c.telefone || '-'}</td>
+        <td>${c.cpf || '-'}</td>
+        <td>${c.quantidade || 0}</td>
+        <td>${formatBRL(c.valor_total)}</td>
+        <td><span class="tag ${c.status === 'PAGO' ? 'tag-pago' : 'tag-pendente'}">${c.status || 'PENDENTE'}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    $('stat-tickets').textContent    = totalTickets;
+    $('stat-arrecadado').textContent = formatBRL(totalArrecadado);
+
+    const meta = premioAtual ? Number(premioAtual.meta_valor) : 0;
+    const progresso = meta > 0 ? Math.min(100, (totalArrecadado / meta) * 100) : 0;
+    $('stat-progresso').textContent = progresso.toFixed(0) + '%';
+    $('stat-meta').textContent      = formatBRL(meta);
+
+    const bateuMeta = totalArrecadado >= meta && meta > 0;
+    $('btn-sorteio').disabled = !bateuMeta;
+    $('aviso-sorteio').textContent = bateuMeta
+      ? '✅ Meta atingida! Você já pode realizar o sorteio.'
+      : `⏳ Faltam ${formatBRL(Math.max(0, meta - totalArrecadado))} para atingir a meta.`;
+
+    // Atualiza card de campanha com os valores atuais
+    atualizarCardCampanha();
+  } catch (err) {
+    console.error('Erro ao carregar compradores:', err);
+    tbody.innerHTML = '<tr><td colspan="6">Erro de conexão ao carregar compradores.</td></tr>';
+    setStatus('offline', 'Falha ao carregar compradores');
+  }
+}
+
+// ==================== SORTEIO ====================
+$('btn-sorteio').addEventListener('click', async () => {
+  const ok = confirm('Tem certeza que deseja realizar o sorteio? Essa ação não pode ser desfeita.');
+  if (!ok) return;
+
+  $('btn-sorteio').disabled = true;
+  $('btn-sorteio').textContent = '🎲 Sorteando...';
+
+  try {
+    const res = await fetch(ENDPOINTS.sorteio, {
+      method: 'POST',
+      headers: headersJson(),
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+
+    if (data.status === 'ok' && data.vencedor) {
+      $('venc-nome').textContent     = data.vencedor.nome;
+      $('venc-telefone').textContent = data.vencedor.telefone;
+      $('venc-ticket').textContent   = data.vencedor.ticket_id;
+      $('resultado-sorteio').classList.remove('hidden');
+      $('btn-sorteio').textContent = '🏆 Sorteio realizado';
+      $('resultado-sorteio').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      alert('Erro no sorteio: ' + (data.mensagem || 'desconhecido'));
+      $('btn-sorteio').disabled = false;
+      $('btn-sorteio').textContent = '🎉 Realizar Sorteio';
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Erro de conexão ao realizar sorteio.');
+    $('btn-sorteio').disabled = false;
+    $('btn-sorteio').textContent = '🎉 Realizar Sorteio';
+    setStatus('offline', 'n8n inacessível');
+  }
+});
+</script>
+</body>
+</html>
